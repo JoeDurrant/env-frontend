@@ -1,82 +1,76 @@
-import React from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
+import logo from "./logo.svg";
+import "./App.css";
+import TemperatureGraph from "./TemperatureGraph";
 
-import {Line} from 'react-chartjs-2';
+const getDataUrl = "https://44tdam0sq0.execute-api.eu-west-2.amazonaws.com/default/GetEnvData";
 
+const App = () => {
+	const [apiKey, setApiKey] = useState("");
+	const [apiKeyConfirmed, setApiKeyConfirmed] = useState(false);
+	const [apiKeyInvalid, setApiKeyInvalid] = useState(false);
+	const [data, setData] = useState({});
+	const [loading, setLoading] = useState(false);
 
+	const getData = useCallback(async () => {
+		let requestOptions = {
+			method: "GET",
+			headers: {
+				"x-api-key": apiKey
+			}
+		};
 
-const state = {
+		try {
+			const response = await fetch(getDataUrl, requestOptions);
 
-  labels: ['January', 'February', 'March',
+			let responseString = await response.json();
 
-           'April', 'May'],
+			if (response.ok) {
+				setData(JSON.parse(responseString.body));
+				setApiKeyInvalid(false);
+			}
+			else {
+				if (responseString.message === "Forbidden") {
+					console.error(`Error ${response.status}. Invalid API Key`);
+				}
+				else {
+					console.error(`Error ${response.status}. ${responseString}`);
+				}
 
-  datasets: [
+				setApiKeyInvalid(true);
+			}
+		}
+		catch (e) {
+			console.error(e);
+			setApiKeyInvalid(true);
+		}
+		finally {
+			setApiKeyConfirmed(true);
+			setLoading(false);
+		}
+	});
 
-    {
+	return (
+		<div className="App">
+			{!apiKeyConfirmed &&
+				<header className="App-header">
+					<img src={logo} className="App-logo" alt="logo" />
+					<h1 className="App-title">Greenhouse</h1>
+					<h2>Enter API Key</h2>
+					<p className="App-intro">
+						<input type="text" onChange={e => { setApiKey(e.target.value) }} />
+						<button type="button" onClick={e => getData(e)}>Submit</button>
+					</p>
+				</header>
+			}
 
-      label: 'Rainfall',
+			{apiKeyConfirmed &&
+				<div>
+					<TemperatureGraph temperatureData={data.temperature} />
+				</div>
+			}
+		</div>
+	);
+};
 
-      fill: false,
-
-      lineTension: 0.5,
-
-      backgroundColor: 'rgba(75,192,192,1)',
-
-      borderColor: 'rgba(0,0,0,1)',
-
-      borderWidth: 2,
-
-      data: [65, 59, 80, 81, 56]
-
-    }
-
-  ]
-
-}
-
-
-
-export default class App extends React.Component {
-
-  render() {
-
-    return (
-
-      <div>
-
-        <Line
-
-          data={state}
-
-          options={{
-
-            title:{
-
-              display:true,
-
-              text:'Average Rainfall per month',
-
-              fontSize:20
-
-            },
-
-            legend:{
-
-              display:true,
-
-              position:'right'
-
-            }
-
-          }}
-
-        />
-
-      </div>
-
-    );
-
-  }
-
-}
-
+export default App;
