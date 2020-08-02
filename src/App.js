@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import logo from "./logo.svg";
 import "./App.css";
 import TemperatureGraph from "./TemperatureGraph";
@@ -8,9 +8,8 @@ const getDataUrl = "https://44tdam0sq0.execute-api.eu-west-2.amazonaws.com/defau
 const App = () => {
 	const [apiKey, setApiKey] = useState("");
 	const [apiKeyConfirmed, setApiKeyConfirmed] = useState(false);
-	const [apiKeyInvalid, setApiKeyInvalid] = useState(false);
 	const [data, setData] = useState({});
-	const [loading, setLoading] = useState(false);
+	const [loading, setLoading] = useState(true);
 
 	const getData = useCallback(async () => {
 		let requestOptions = {
@@ -27,25 +26,22 @@ const App = () => {
 
 			if (response.ok) {
 				setData(JSON.parse(responseString.body));
-				setApiKeyInvalid(false);
+				setApiKeyConfirmed(true);
 			}
 			else {
 				if (responseString.message === "Forbidden") {
 					console.error(`Error ${response.status}. Invalid API Key`);
+					alert("invalid api key");
 				}
 				else {
 					console.error(`Error ${response.status}. ${responseString}`);
-				}
-
-				setApiKeyInvalid(true);
+				}				
 			}
 		}
 		catch (e) {
 			console.error(e);
-			setApiKeyInvalid(true);
 		}
 		finally {
-			setApiKeyConfirmed(true);
 			setLoading(false);
 		}
 	});
@@ -59,15 +55,24 @@ const App = () => {
 					<h2>Enter API Key</h2>
 					<p className="App-intro">
 						<input type="text" onChange={e => { setApiKey(e.target.value) }} />
-						<button type="button" onClick={e => getData(e)}>Submit</button>
+						<button type="button" onClick={e => {setLoading(true); getData(e);}}>Submit</button>
 					</p>
 				</header>
 			}
 
 			{apiKeyConfirmed &&
-				<div>
-					<TemperatureGraph temperatureData={data.temperature} />
-				</div>
+				<>
+					{loading &&
+						<div>Loading...</div>
+					}
+
+					{!loading &&
+						<div>Loading...</div>
+					}
+					<div>
+						<TemperatureGraph temperatureData={data.temperature} />
+					</div>
+				</>
 			}
 		</div>
 	);
